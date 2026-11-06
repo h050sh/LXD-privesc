@@ -27,19 +27,7 @@ Or with the included Alpine rootfs:
 - Member of the `lxd` group
 - LXD/LXC installed on the target
 
-## GTFOBins Auto-Checker
-
-Bonus: `gtfo-check.sh` scans the system for exploitable SUID, SGID, capabilities, and sudo binaries — cross-referenced against all 435 GTFOBins entries. No dependencies, no internet needed.
-
-```bash
-chmod +x gtfo-check.sh
-./gtfo-check.sh
-```
-
-Shows which binaries are exploitable, what functions they support (shell, file-read, file-write, etc.), and the exact exploit command.
-
 ## Files
 
 - `priv.sh` — LXD privesc script
 - `alpine-minirootfs-3.18.0-x86_64.tar.gz` — pre-built Alpine rootfs (no internet needed on target)
-- `gtfo-check.sh` — GTFOBins auto-checker (435 binaries, self-contained)
