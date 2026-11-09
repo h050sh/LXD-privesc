@@ -84,11 +84,27 @@ fi
 # ========== IMAGE (only if none exists) ==========
 import_tarball() {
     local f="$1"
+    # Proper LXD image (has metadata.yaml + rootfs with /sbin/init)?
     if tar -tzf "$f" 2>/dev/null | grep -q "^metadata.yaml$"; then
         "$LXC" image import "$f" --alias "$ALIAS" 2>/dev/null && echo "$ALIAS" && return 0
     fi
-    # Raw rootfs -> wrap with metadata
+    # Raw rootfs (e.g. alpine-minirootfs) -> unpack, inject /sbin/init, repack as LXD image
     local td; td=$(mktemp -d)
+    mkdir -p "$td/rootfs"
+    tar xzf "$f" -C "$td/rootfs" 2>/dev/null || { rm -rf "$td"; return 1; }
+
+    # Inject /sbin/init — LXD needs this to start the container
+    if [ ! -x "$td/rootfs/sbin/init" ]; then
+        mkdir -p "$td/rootfs/sbin"
+        if [ -x "$td/rootfs/sbin/openrc-init" ]; then
+            ln -sf openrc-init "$td/rootfs/sbin/init"
+        else
+            printf '#!/bin/sh\nsleep infinity\n' > "$td/rootfs/sbin/init"
+            chmod +x "$td/rootfs/sbin/init"
+        fi
+        log "Injected /sbin/init"
+    fi
+
     cat > "$td/metadata.yaml" <<M
 architecture: "$(uname -m)"
 creation_date: $(date +%s)
@@ -98,7 +114,8 @@ properties:
   release: "3"
 M
     (cd "$td" && tar czf metadata.tar.gz metadata.yaml)
-    if "$LXC" image import "$td/metadata.tar.gz" "$f" --alias "$ALIAS" 2>/dev/null; then
+    (cd "$td" && tar czf rootfs.tar.gz -C rootfs .)
+    if "$LXC" image import "$td/metadata.tar.gz" "$td/rootfs.tar.gz" --alias "$ALIAS" 2>/dev/null; then
         rm -rf "$td"; log "Imported tarball"; echo "$ALIAS"; return 0
     fi
     rm -rf "$td"; return 1
@@ -151,7 +168,10 @@ architecture: "$(uname -m)"
 creation_date: $(date +%s)
 properties: { description: "Minimal", os: Linux, release: minimal }
 M
-    mkdir -p "$td/rootfs"/{bin,dev,etc,proc,sys,tmp}
+    mkdir -p "$td/rootfs"/{bin,dev,etc,proc,sys,sbin,tmp}
+    # Inject /sbin/init
+    printf '#!/bin/sh\nsleep infinity\n' > "$td/rootfs/sbin/init"
+    chmod +x "$td/rootfs/sbin/init"
     for sh in /bin/busybox /bin/bash /bin/sh; do
         [ -x "$sh" ] || continue
         cp "$sh" "$td/rootfs/bin/"
