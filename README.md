@@ -1,6 +1,6 @@
-# LXD Privilege Escalation
+# LXD Privilege Escalation - OSCP Compliant
 
-CTF easy script — pre-built Alpine image included, just install and run if you're in the `lxd` group.
+Command guide for LXD group privilege escalation. This tool does NOT execute any exploit commands automatically. It enumerates the target environment and prints the exact commands for you to run manually.
 
 ## Usage
 
@@ -9,7 +9,7 @@ chmod +x priv.sh
 ./priv.sh
 ```
 
-Or with the included Alpine rootfs:
+Or specify an Alpine rootfs tarball:
 
 ```bash
 ./priv.sh alpine-minirootfs-3.18.0-x86_64.tar.gz
@@ -17,10 +17,24 @@ Or with the included Alpine rootfs:
 
 ## What it does
 
-1. Detects `lxc`/`lxd` on the system
-2. Creates a privileged container with the host filesystem mounted at `/mnt/root`
-3. Reads flags and `/etc/shadow`
-4. Drops you into a root shell on the host
+1. Checks if the current user is in the `lxd` group
+2. Locates `lxc`/`lxd` binaries on the system
+3. Detects existing storage pools and images
+4. Prints step-by-step commands to:
+   - Create a storage pool (if needed)
+   - Import an Alpine image (if needed)
+   - Create a privileged container with the host filesystem mounted
+   - Read flags and `/etc/shadow`
+   - Get a root shell via chroot
+   - Clean up after exploitation
+
+## OSCP Compliance
+
+This tool is designed for OSCP exam and lab use:
+- No automatic exploitation
+- No automatic command execution beyond enumeration
+- All exploit commands are displayed for manual execution
+- You maintain full control over every action
 
 ## Requirements
 
@@ -29,5 +43,5 @@ Or with the included Alpine rootfs:
 
 ## Files
 
-- `priv.sh` — LXD privesc script
-- `alpine-minirootfs-3.18.0-x86_64.tar.gz` — pre-built Alpine rootfs (no internet needed on target)
+- `priv.sh` - LXD privilege escalation command guide
+- `alpine-minirootfs-3.18.0-x86_64.tar.gz` - pre-built Alpine rootfs (no internet needed on target)
